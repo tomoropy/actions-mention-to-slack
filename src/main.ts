@@ -63,19 +63,28 @@ export const execPrReviewRequestedMention = async (
   mapping: MappingFile,
   slackClient: Pick<typeof SlackRepositoryImpl, "postToSlack">
 ): Promise<void> => {
-  const requestedGithubUsername = payload.requested_reviewer?.login;
-  const requestedGithubTeam = payload.requested_team?.name;
+  const requestedGithubUsernames =
+    payload.pull_request?.requested_reviewers?.map(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (reviewer: any) => reviewer.login
+    ) || [];
+  const requestedGithubTeams =
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    payload.pull_request?.requested_teams?.map((team: any) => team.name) || [];
 
-  if (!requestedGithubUsername && !requestedGithubTeam) {
+  if (
+    requestedGithubUsernames.length === 0 &&
+    requestedGithubTeams.length === 0
+  ) {
     throw new Error("Can not find review requested user or team.");
   }
 
   const slackUserIds = convertToSlackUsername(
-    [requestedGithubUsername],
+    [requestedGithubUsernames],
     mapping
   );
   const slackUserGroupIds = convertToSlackUsername(
-    [requestedGithubTeam],
+    [requestedGithubTeams],
     mapping
   );
 
